@@ -1,0 +1,131 @@
+{ ========================================
+  Measured Move Pattern Detector
+  ========================================
+  
+  This indicator identifies measured move patterns by:
+  1. Detecting significant impulse moves (Range 1)
+  2. Identifying pullback/consolidation ranges (Range 2)
+  3. Projecting the target for the third leg (Range 3)
+  
+  The script marks these ranges and calculates projection targets
+}
+
+inputs:
+    MinMovePercent(5),        // Minimum % move to qualify as Range 1
+    MinMoveBars(3),           // Minimum bars for impulse move
+    MaxMoveBars(20),          // Maximum bars for impulse move
+    PullbackMinPercent(30),   // Min pullback % of Range 1 (e.g., 30% retracement)
+    PullbackMaxPercent(70),   // Max pullback % of Range 1 (e.g., 70% retracement)
+    ConsolidationBars(10),    // Bars to identify consolidation
+    ShowProjection(true);     // Display projected target
+
+vars:
+    Range1Start(0),
+    Range1End(0),
+    Range1High(0),
+    Range1Low(0),
+    Range1Size(0),
+    Range2Start(0),
+    Range2End(0),
+    Range2High(0),
+    Range2Low(0),
+    PullbackPercent(0),
+    ProjectedTarget(0),
+    IsUpMove(false),
+    IsDownMove(false),
+    PatternComplete(false),
+    Counter(0),
+    TempHigh(0),
+    TempLow(0),
+    MoveSize(0),
+    SignalValue(0);
+
+// Look for significant impulse moves (Range 1)
+// Scan backwards to find a strong directional move
+
+// Reset signal
+SignalValue = 0;
+
+// BULLISH MEASURED MOVE DETECTION
+// Look for strong up move followed by pullback
+
+Counter = 1;
+while Counter <= MaxMoveBars begin
+    TempLow = Lowest(Low, Counter);
+    TempHigh = Highest(High, Counter);
+    MoveSize = ((TempHigh - TempLow) / TempLow) * 100;
+    
+    // Found a significant up move
+    if MoveSize >= MinMovePercent and Counter >= MinMoveBars then begin
+        Range1Low = TempLow;
+        Range1High = TempHigh;
+        Range1Size = Range1High - Range1Low;
+        Range1Start = Counter;
+        IsUpMove = true;
+        
+        // Check if we're currently in a pullback
+        // Pullback should be between 30-70% of Range 1
+        PullbackPercent = ((Range1High - Close) / Range1Size) * 100;
+        
+        if PullbackPercent >= PullbackMinPercent and 
+           PullbackPercent <= PullbackMaxPercent then begin
+            
+            // Check if price is starting to move back up
+            // (Close > Close[1] indicates potential Range 3 starting)
+            if Close > Close[1] and Close > Close[2] then begin
+                ProjectedTarget = Close + Range1Size;
+                SignalValue = 1;  // Bullish measured move setup
+                Counter = MaxMoveBars + 1;  // Exit loop
+            end;
+        end;
+    end;
+    
+    Counter = Counter + 1;
+end;
+
+// BEARISH MEASURED MOVE DETECTION
+// Look for strong down move followed by pullback
+
+if SignalValue = 0 then begin
+    Counter = 1;
+    while Counter <= MaxMoveBars begin
+        TempHigh = Highest(High, Counter);
+        TempLow = Lowest(Low, Counter);
+        MoveSize = ((TempHigh - TempLow) / TempHigh) * 100;
+        
+        // Found a significant down move
+        if MoveSize >= MinMovePercent and Counter >= MinMoveBars then begin
+            Range1High = TempHigh;
+            Range1Low = TempLow;
+            Range1Size = Range1High - Range1Low;
+            Range1Start = Counter;
+            IsDownMove = true;
+            
+            // Check if we're currently in a pullback
+            PullbackPercent = ((Close - Range1Low) / Range1Size) * 100;
+            
+            if PullbackPercent >= PullbackMinPercent and 
+               PullbackPercent <= PullbackMaxPercent then begin
+                
+                // Check if price is starting to move back down
+                if Close < Close[1] and Close < Close[2] then begin
+                    ProjectedTarget = Close - Range1Size;
+                    SignalValue = -1;  // Bearish measured move setup
+                    Counter = MaxMoveBars + 1;  // Exit loop
+                end;
+            end;
+        end;
+        
+        Counter = Counter + 1;
+    end;
+end;
+
+// Plot the signal
+Plot1(SignalValue, "MeasuredMove");
+
+// Optional: Plot projected target as a secondary plot
+if ShowProjection and SignalValue <> 0 then
+    Plot2(ProjectedTarget, "Target")
+else
+    Plot2(Close, "Target");
+

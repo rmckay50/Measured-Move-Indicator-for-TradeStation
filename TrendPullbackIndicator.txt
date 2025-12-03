@@ -1,0 +1,92 @@
+{ ========================================
+  Trend Pullback to EMA - RadarScreen Indicator
+  ========================================
+  
+  This indicator identifies stocks that are:
+  1. In a defined trend (using moving average slope)
+  2. Have pulled back to touch/cross the 20-period EMA
+  3. Have one bar moving back in the direction of the trend
+  
+  Returns:
+  1 = Bullish setup (uptrend pullback)
+  -1 = Bearish setup (downtrend pullback)
+  0 = No setup
+}
+
+inputs:
+    EmaPeriod(20),           // EMA period for pullback level
+    TrendMAPeriod(50),       // MA period to define the trend
+    PullbackBars(3),         // Number of bars to look back for pullback
+    MinTrendSlope(0.1);      // Minimum slope to confirm trend (adjustable)
+
+vars:
+    EMA20(0),
+    TrendMA(0),
+    TrendSlope(0),
+    IsUptrend(false),
+    IsDowntrend(false),
+    HasPullback(false),
+    HasBounce(false),
+    SignalValue(0);
+
+// Calculate EMAs
+EMA20 = XAverage(Close, EmaPeriod);
+TrendMA = Average(Close, TrendMAPeriod);
+
+// Calculate trend slope (change over last 5 bars)
+TrendSlope = (TrendMA - TrendMA[5]) / 5;
+
+// Determine trend direction
+IsUptrend = Close > TrendMA and TrendSlope > MinTrendSlope;
+IsDowntrend = Close < TrendMA and TrendSlope < -MinTrendSlope;
+
+// Initialize
+SignalValue = 0;
+
+// ===== BULLISH SETUP =====
+if IsUptrend then begin
+    HasPullback = false;
+    HasBounce = false;
+    
+    // Check if there was a pullback to EMA in recent bars
+    // Looking for price touching or crossing below EMA
+    for value1 = 1 to PullbackBars begin
+        if Low[value1] <= EMA20[value1] then
+            HasPullback = true;
+    end;
+    
+    // Check if current bar is bouncing back up
+    // Current bar should close above previous bar's close
+    // and preferably above the EMA
+    if HasPullback and Close > Close[1] and Close > EMA20 then
+        HasBounce = true;
+    
+    if HasBounce then
+        SignalValue = 1;
+end;
+
+// ===== BEARISH SETUP =====
+if IsDowntrend then begin
+    HasPullback = false;
+    HasBounce = false;
+    
+    // Check if there was a pullback to EMA in recent bars
+    // Looking for price touching or crossing above EMA
+    for value1 = 1 to PullbackBars begin
+        if High[value1] >= EMA20[value1] then
+            HasPullback = true;
+    end;
+    
+    // Check if current bar is moving back down
+    // Current bar should close below previous bar's close
+    // and preferably below the EMA
+    if HasPullback and Close < Close[1] and Close < EMA20 then
+        HasBounce = true;
+    
+    if HasBounce then
+        SignalValue = -1;
+end;
+
+// Plot the signal value
+Plot1(SignalValue, "TrendPullback");
+
