@@ -1,0 +1,205 @@
+{ ========================================
+  Measured Move Scanner - RadarScreen
+  ========================================
+  
+  This RadarScreen indicator scans for measured move setups:
+  - Returns numeric values for easy sorting
+  - Identifies stocks where Range 3 is likely starting
+  - Shows pullback percentage and projected gain
+  
+  Return Values:
+  0 = No setup
+  1-10 = Bullish setup strength (higher = stronger)
+  -1 to -10 = Bearish setup strength (lower = stronger)
+}
+
+inputs:
+    MinMovePercent(3),        // Minimum % move for Range 1
+    MinMoveBars(5),           // Minimum bars for Range 1
+    MaxMoveBars(30),          // Maximum bars to look back
+    MinPullback(25),          // Minimum pullback % of Range 1
+    MaxPullback(75),          // Maximum pullback % of Range 1
+    VolumeConfirm(true);     // Require volume confirmation
+
+vars:
+    R1StartBar(0),
+    R1EndBar(0),
+    R1High(0),
+    R1Low(0),
+    R1Size(0),
+    R1SizePercent(0),
+    CurrentPullback(0),
+    ProjectedGain(0),
+    SetupStrength(0),
+    TempHigh(0),
+    TempLow(0),
+    TempHighBar(0),
+    TempLowBar(0),
+    MovePercent(0),
+    AvgVol(0),
+    VolumeOK(false),
+    i(0);
+
+// Calculate average volume
+AvgVol = Average(Volume, 20);
+
+// Initialize
+SetupStrength = 0;
+
+// ============================================
+// SCAN FOR BULLISH MEASURED MOVE
+// ============================================
+
+for i = MinMoveBars to MaxMoveBars begin
+    TempLow = Low[i];
+    TempHigh = High[i];
+    TempLowBar = i;
+    TempHighBar = i;
+    
+    // Find the actual high and low in this range
+    for Value1 = i downto 0 begin
+        if High[Value1] > TempHigh then begin
+            TempHigh = High[Value1];
+            TempHighBar = Value1;
+        end;
+        if Low[Value1] < TempLow then begin
+            TempLow = Low[Value1];
+            TempLowBar = Value1;
+        end;
+    end;
+    
+    // Check if this is an uptrend (low before high)
+    if TempLowBar > TempHighBar then begin
+        R1Size = TempHigh - TempLow;
+        MovePercent = (R1Size / TempLow) * 100;
+        
+        // Valid Range 1 found
+        if MovePercent >= MinMovePercent then begin
+            R1Low = TempLow;
+            R1High = TempHigh;
+            R1SizePercent = MovePercent;
+            
+            // Check current pullback
+            CurrentPullback = ((R1High - Close) / R1Size) * 100;
+            
+            // Valid pullback zone
+            if CurrentPullback >= MinPullback and CurrentPullback <= MaxPullback then begin
+                
+                // Check volume confirmation
+                VolumeOK = true;
+                if VolumeConfirm then begin
+                    VolumeOK = Volume > AvgVol * 0.8; // At least 80% of avg volume
+                end;
+                
+                // Check if Range 3 is starting (momentum turning)
+                if (Close > Close[1] or Low > Low[1]) and VolumeOK then begin
+                    // Calculate projected gain potential
+                    ProjectedGain = (R1Size / Close) * 100;
+                    
+                    // Calculate setup strength (1-10 scale)
+                    // Based on: move size, pullback quality, volume
+                    SetupStrength = MinList(10, Round(MovePercent / 2, 0));
+                    
+                    // Boost strength for ideal pullbacks (40-60% range)
+                    if CurrentPullback >= 40 and CurrentPullback <= 60 then
+                        SetupStrength = SetupStrength + 2;
+                    
+                    // Boost for strong volume
+                    if Volume > AvgVol * 1.2 then
+                        SetupStrength = SetupStrength + 1;
+                    
+                    SetupStrength = MinList(10, SetupStrength); // Cap at 10
+                    
+                    i = MaxMoveBars + 1; // Exit loop
+                end;
+            end;
+        end;
+    end;
+end;
+
+// ============================================
+// SCAN FOR BEARISH MEASURED MOVE
+// ============================================
+
+if SetupStrength = 0 then begin
+    for i = MinMoveBars to MaxMoveBars begin
+        TempLow = Low[i];
+        TempHigh = High[i];
+        TempLowBar = i;
+        TempHighBar = i;
+        
+        // Find actual high and low
+        for Value1 = i downto 0 begin
+            if High[Value1] > TempHigh then begin
+                TempHigh = High[Value1];
+                TempHighBar = Value1;
+            end;
+            if Low[Value1] < TempLow then begin
+                TempLow = Low[Value1];
+                TempLowBar = Value1;
+            end;
+        end;
+        
+        // Check if this is a downtrend (high before low)
+        if TempHighBar > TempLowBar then begin
+            R1Size = TempHigh - TempLow;
+            MovePercent = (R1Size / TempHigh) * 100;
+            
+            // Valid Range 1 found
+            if MovePercent >= MinMovePercent then begin
+                R1High = TempHigh;
+                R1Low = TempLow;
+                R1SizePercent = MovePercent;
+                
+                // Check current pullback
+                CurrentPullback = ((Close - R1Low) / R1Size) * 100;
+                
+                // Valid pullback zone
+                if CurrentPullback >= MinPullback and CurrentPullback <= MaxPullback then begin
+                    
+                    // Check volume
+                    VolumeOK = true;
+                    if VolumeConfirm then begin
+                        VolumeOK = Volume > AvgVol * 0.8;
+                    end;
+                    
+                    // Check if Range 3 is starting
+                    if (Close < Close[1] or High < High[1]) and VolumeOK then begin
+                        // Calculate projected gain potential
+                        ProjectedGain = (R1Size / Close) * 100;
+                        
+                        // Calculate setup strength (-1 to -10 scale)
+                        SetupStrength = MaxList(-10, -Round(MovePercent / 2, 0));
+                        
+                        // Adjust for ideal pullback
+                        if CurrentPullback >= 40 and CurrentPullback <= 60 then
+                            SetupStrength = SetupStrength - 2;
+                        
+                        // Adjust for volume
+                        if Volume > AvgVol * 1.2 then
+                            SetupStrength = SetupStrength - 1;
+                        
+                        SetupStrength = MaxList(-10, SetupStrength); // Cap at -10
+                        
+                        i = MaxMoveBars + 1; // Exit loop
+                    end;
+                end;
+            end;
+        end;
+    end;
+end;
+
+// Plot the setup strength value
+Plot1(SetupStrength, "MMSetup");
+
+// Additional plots for RadarScreen columns (optional)
+if SetupStrength <> 0 then begin
+    Plot2(R1SizePercent, "R1_Size%");
+    Plot3(CurrentPullback, "Pullback%");
+    Plot4(ProjectedGain, "Proj_Gain%");
+end else begin
+    Plot2(0, "R1_Size%");
+    Plot3(0, "Pullback%");
+    Plot4(0, "Proj_Gain%");
+end;
+

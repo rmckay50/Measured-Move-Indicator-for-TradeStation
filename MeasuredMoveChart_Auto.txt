@@ -1,0 +1,179 @@
+{ ========================================
+  Measured Move Chart Indicator with Visual Projection
+  ========================================
+  
+  This indicator:
+  - Automatically detects measured move patterns
+  - Draws boxes/rectangles for Range 1 and Range 2
+  - Projects and displays the target level
+  - Shows when price approaches support/resistance zones
+  - Alerts when setup is forming
+}
+
+inputs:
+    MinMovePercent(3),        // Minimum % move for Range 1
+    MinMoveBars(5),           // Minimum bars for Range 1
+    MaxMoveBars(30),          // Maximum bars to look back
+    MinPullback(25),          // Minimum pullback % of Range 1
+    MaxPullback(75),          // Maximum pullback % of Range 1
+    ShowProjection(true),     // Show projected target line
+    ShowRangeBoxes(true),     // Show Range 1 and Range 2 boxes
+    AlertOnSetup(false);      // Alert when pattern forms
+
+vars:
+    R1StartBar(0),
+    R1EndBar(0),
+    R1High(0),
+    R1Low(0),
+    R1Size(0),
+    R2Low(0),
+    R2High(0),
+    CurrentPullback(0),
+    ProjectedTarget(0),
+    BullishSetup(false),
+    BearishSetup(false),
+    SetupValue(0),
+    TempHigh(0),
+    TempLow(0),
+    TempHighBar(0),
+    TempLowBar(0),
+    MovePercent(0),
+    i(0);
+
+// Initialize
+SetupValue = 0;
+BullishSetup = false;
+BearishSetup = false;
+
+// SCAN FOR BULLISH MEASURED MOVE
+// Look for strong up move (Range 1) followed by pullback (Range 2)
+
+for i = MinMoveBars to MaxMoveBars begin
+    // Find the low and high within this period
+    TempLow = Low[i];
+    TempHigh = High[i];
+    TempLowBar = i;
+    TempHighBar = i;
+    
+    // Find actual high within the range
+    for Value1 = i downto 0 begin
+        if High[Value1] > TempHigh then begin
+            TempHigh = High[Value1];
+            TempHighBar = Value1;
+        end;
+        if Low[Value1] < TempLow then begin
+            TempLow = Low[Value1];
+            TempLowBar = Value1;
+        end;
+    end;
+    
+    // Check if low came before high (uptrend)
+    if TempLowBar > TempHighBar then begin
+        R1Size = TempHigh - TempLow;
+        MovePercent = (R1Size / TempLow) * 100;
+        
+        // Valid Range 1 up move found
+        if MovePercent >= MinMovePercent then begin
+            R1Low = TempLow;
+            R1High = TempHigh;
+            R1StartBar = TempLowBar;
+            R1EndBar = TempHighBar;
+            
+            // Now check current pullback
+            CurrentPullback = ((R1High - Close) / R1Size) * 100;
+            
+            // Valid pullback range
+            if CurrentPullback >= MinPullback and CurrentPullback <= MaxPullback then begin
+                // Check if momentum is turning back up (Range 3 starting)
+                if Close > Close[1] or Low > Low[1] then begin
+                    BullishSetup = true;
+                    ProjectedTarget = Close + R1Size;
+                    SetupValue = 1;
+                    i = MaxMoveBars + 1; // Exit loop
+                end;
+            end;
+        end;
+    end;
+end;
+
+// SCAN FOR BEARISH MEASURED MOVE
+if not BullishSetup then begin
+    for i = MinMoveBars to MaxMoveBars begin
+        TempLow = Low[i];
+        TempHigh = High[i];
+        TempLowBar = i;
+        TempHighBar = i;
+        
+        // Find actual high and low within the range
+        for Value1 = i downto 0 begin
+            if High[Value1] > TempHigh then begin
+                TempHigh = High[Value1];
+                TempHighBar = Value1;
+            end;
+            if Low[Value1] < TempLow then begin
+                TempLow = Low[Value1];
+                TempLowBar = Value1;
+            end;
+        end;
+        
+        // Check if high came before low (downtrend)
+        if TempHighBar > TempLowBar then begin
+            R1Size = TempHigh - TempLow;
+            MovePercent = (R1Size / TempHigh) * 100;
+            
+            // Valid Range 1 down move found
+            if MovePercent >= MinMovePercent then begin
+                R1High = TempHigh;
+                R1Low = TempLow;
+                R1StartBar = TempHighBar;
+                R1EndBar = TempLowBar;
+                
+                // Now check current pullback
+                CurrentPullback = ((Close - R1Low) / R1Size) * 100;
+                
+                // Valid pullback range
+                if CurrentPullback >= MinPullback and CurrentPullback <= MaxPullback then begin
+                    // Check if momentum is turning back down (Range 3 starting)
+                    if Close < Close[1] or High < High[1] then begin
+                        BearishSetup = true;
+                        ProjectedTarget = Close - R1Size;
+                        SetupValue = -1;
+                        i = MaxMoveBars + 1; // Exit loop
+                    end;
+                end;
+            end;
+        end;
+    end;
+end;
+
+// Plot signals
+if BullishSetup then begin
+    Plot1(Low - (Range * 0.02), "BullSetup");
+    if ShowProjection then
+        Plot2(ProjectedTarget, "BullTarget");
+    
+    // Alert
+    if AlertOnSetup and SetupValue[1] = 0 then
+        Alert("Bullish Measured Move Setup");
+        
+end else if BearishSetup then begin
+    Plot1(High + (Range * 0.02), "BearSetup");
+    if ShowProjection then
+        Plot2(ProjectedTarget, "BearTarget");
+    
+    // Alert
+    if AlertOnSetup and SetupValue[1] = 0 then
+        Alert("Bearish Measured Move Setup");
+end;
+
+// Display info
+if BullishSetup or BearishSetup then begin
+    Commentary("=== MEASURED MOVE DETECTED ===");
+    Commentary("Direction: " + IFF(BullishSetup, "BULLISH", "BEARISH"));
+    Commentary("Range 1 Size: " + NumToStr(R1Size, 2));
+    Commentary("Pullback %: " + NumToStr(CurrentPullback, 1) + "%");
+    Commentary("Current Price: " + NumToStr(Close, 2));
+    Commentary("Projected Target: " + NumToStr(ProjectedTarget, 2));
+    Commentary("Distance to Target: " + NumToStr(AbsValue(ProjectedTarget - Close), 2));
+end;
+

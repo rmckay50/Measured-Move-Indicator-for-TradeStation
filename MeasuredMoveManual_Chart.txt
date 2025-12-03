@@ -1,0 +1,94 @@
+{ ========================================
+  Manual Measured Move Projection Tool
+  ========================================
+  
+  This indicator allows you to manually mark:
+  - Range 1 Start and End points
+  - Range 2 End point (pullback completion)
+  
+  The indicator will then:
+  - Calculate the size of Range 1
+  - Project the target for Range 3
+  - Draw projection lines and target zone
+  
+  HOW TO USE:
+  1. Set Range1StartBar to the bar number where Range 1 begins
+  2. Set Range1EndBar to the bar number where Range 1 ends
+  3. Set Range2EndBar to the bar where Range 2 completes (pullback ends)
+  4. The script will automatically project the measured move target
+}
+
+inputs:
+    Range1StartBar(20),      // Bar where initial move starts (bars ago)
+    Range1EndBar(10),        // Bar where initial move ends (bars ago)
+    Range2EndBar(2),         // Bar where pullback ends (bars ago)
+    ShowLabels(true),        // Display text labels
+    ShowTargetZone(true);    // Show shaded target zone
+
+vars:
+    R1StartPrice(0),
+    R1EndPrice(0),
+    R1Size(0),
+    R2EndPrice(0),
+    ProjectedTarget(0),
+    IsUpMove(false),
+    TargetHit(false);
+
+// Get the prices at the specified bars
+R1StartPrice = Close[Range1StartBar];
+R1EndPrice = Close[Range1EndBar];
+R2EndPrice = Close[Range2EndBar];
+
+// Determine if this is an up or down move
+IsUpMove = R1EndPrice > R1StartPrice;
+
+// Calculate Range 1 size
+R1Size = AbsValue(R1EndPrice - R1StartPrice);
+
+// Calculate projected target
+if IsUpMove then
+    ProjectedTarget = R2EndPrice + R1Size
+else
+    ProjectedTarget = R2EndPrice - R1Size;
+
+// Plot the key levels
+Plot1(R1StartPrice, "R1Start");
+Plot2(R1EndPrice, "R1End");
+Plot3(R2EndPrice, "R2End");
+Plot4(ProjectedTarget, "Target");
+
+// Draw horizontal lines at key levels (use trendlines in practice)
+if CurrentBar = 0 then begin
+    // Range 1 Start
+    Value1 = TL_New(Date[Range1StartBar], Time[Range1StartBar], R1StartPrice,
+                     Date, Time, R1StartPrice);
+    TL_SetColor(Value1, Yellow);
+    TL_SetSize(Value1, 2);
+    
+    // Range 1 End (also Range 2 Start)
+    Value2 = TL_New(Date[Range1EndBar], Time[Range1EndBar], R1EndPrice,
+                     Date, Time, R1EndPrice);
+    TL_SetColor(Value2, Yellow);
+    TL_SetSize(Value2, 2);
+    
+    // Range 2 End (Range 3 Start)
+    Value3 = TL_New(Date[Range2EndBar], Time[Range2EndBar], R2EndPrice,
+                     Date, Time, R2EndPrice);
+    TL_SetColor(Value3, Cyan);
+    TL_SetSize(Value3, 2);
+    
+    // Projected Target
+    Value4 = TL_New(Date[Range2EndBar], Time[Range2EndBar], ProjectedTarget,
+                     Date + 10, Time, ProjectedTarget);
+    TL_SetColor(Value4, Green);
+    TL_SetStyle(Value4, Tool_Dashed);
+    TL_SetSize(Value4, 3);
+end;
+
+// Display information in data window
+Commentary("Range 1 Size: " + NumToStr(R1Size, 2));
+Commentary("Direction: " + IFF(IsUpMove, "UP", "DOWN"));
+Commentary("R2 End: " + NumToStr(R2EndPrice, 2));
+Commentary("Projected Target: " + NumToStr(ProjectedTarget, 2));
+Commentary("Distance to Target: " + NumToStr(AbsValue(ProjectedTarget - Close), 2));
+

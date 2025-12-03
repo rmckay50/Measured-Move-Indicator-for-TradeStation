@@ -1,0 +1,234 @@
+========================================
+MEASURED MOVE TRADING SYSTEM - USER GUIDE
+========================================
+
+You now have THREE different tools to identify and trade measured move patterns:
+
+========================================
+TOOL 1: RADARSCREEN SCANNER
+========================================
+File: MeasuredMove_RadarScreen.txt
+
+PURPOSE: Scan your watchlist to find stocks with measured move setups forming RIGHT NOW
+
+HOW TO USE:
+1. In TradeStation, create a new ShowMe Study or Indicator
+2. Paste the code and compile
+3. Add to RadarScreen
+4. Add these columns:
+   - MMSetup (main signal)
+   - R1_Size% (size of initial move)
+   - Pullback% (how much it pulled back)
+   - Proj_Gain% (potential profit if pattern completes)
+
+READING THE SIGNALS:
+- 0 = No setup
+- 1-10 = BULLISH setup (higher number = stronger)
+- -1 to -10 = BEARISH setup (lower number = stronger)
+
+WORKFLOW:
+- Sort by MMSetup column
+- Look for values of 5 or higher (bullish) or -5 or lower (bearish)
+- Click on stock to view chart for confirmation
+- Check if projected target aligns with support/resistance
+
+ADJUSTABLE SETTINGS:
+- MinMovePercent (3) - How big Range 1 must be
+- MinPullback (25) - Minimum pullback percentage
+- MaxPullback (75) - Maximum pullback percentage
+- VolumeConfirm (true) - Require volume confirmation
+
+========================================
+TOOL 2: AUTOMATIC CHART INDICATOR
+========================================
+File: MeasuredMoveChart_Auto.txt
+
+PURPOSE: Automatically detect patterns on any chart and show projected targets
+
+HOW TO USE:
+1. Create a new Indicator in EasyLanguage
+2. Paste code and compile
+3. Add to any chart (works on any timeframe)
+4. The indicator will automatically identify setups
+
+WHAT IT SHOWS:
+- Plots an arrow when a setup forms
+- Displays projected target level
+- Shows all info in the Data Window
+- Can enable audio/visual alerts
+
+DATA WINDOW INFO:
+When a setup is detected, you'll see:
+- Direction (Bullish/Bearish)
+- Range 1 Size
+- Pullback Percentage
+- Current Price
+- Projected Target
+- Distance to Target
+
+BEST PRACTICES:
+1. Let the indicator find patterns automatically
+2. When signal appears, verify:
+   - Is projected target near S/R level?
+   - Does the pattern look clean?
+   - Is volume confirming?
+3. Use this for final confirmation before entry
+
+SETTINGS:
+- MinMovePercent (3) - Smaller number = more signals
+- AlertOnSetup (false) - Set to TRUE for alerts
+
+========================================
+TOOL 3: MANUAL PROJECTION TOOL
+========================================
+File: MeasuredMoveManual_Chart.txt
+
+PURPOSE: When YOU identify a pattern, this calculates and displays the target
+
+HOW TO USE:
+1. Create new Indicator
+2. Paste code and compile
+3. Add to chart where you see a pattern
+4. Count bars back to key points:
+   - Where did Range 1 START? (count bars back)
+   - Where did Range 1 END? (count bars back)
+   - Where did Range 2 END? (count bars back)
+5. Input these numbers in the indicator settings
+6. The tool draws lines and calculates target
+
+EXAMPLE:
+If looking at your screenshot:
+- Range 1 started 20 bars ago (set Range1StartBar = 20)
+- Range 1 ended 15 bars ago (set Range1EndBar = 15)  
+- Range 2 ended 2 bars ago (set Range2EndBar = 2)
+
+The indicator will:
+- Draw horizontal lines at each level
+- Calculate and display projected target
+- Show target as dashed line extending forward
+
+WHY USE THIS:
+- You have sharp eyes for patterns
+- Not all patterns are "textbook" 
+- Gives you precise target calculations
+- Helps plan entries and exits
+
+========================================
+RECOMMENDED WORKFLOW
+========================================
+
+STEP 1 - SCANNING (End of Day or During Trading)
+→ Use RADARSCREEN tool
+→ Sort by MMSetup column
+→ Look for values ≥ 5 (bullish) or ≤ -5 (bearish)
+→ Note the Proj_Gain% to prioritize best opportunities
+
+STEP 2 - CHART REVIEW
+→ Click on identified stocks
+→ Use AUTOMATIC CHART INDICATOR
+→ Verify the pattern looks clean
+→ Check: Does projected target hit obvious S/R?
+
+STEP 3 - FINAL CONFIRMATION
+→ For patterns you really like
+→ Use MANUAL TOOL to fine-tune
+→ Verify your interpretation of ranges
+→ Get exact target level for orders
+
+========================================
+KEY TRADING RULES FOR MEASURED MOVES
+========================================
+
+✓ PATTERN REQUIREMENTS:
+1. Range 1 must be clean impulse move (3%+ minimum)
+2. Range 2 pullback should be 40-60% ideal (25-75% acceptable)
+3. Range 3 should start with momentum shift
+4. Volume should confirm the move
+
+✓ TARGET VALIDATION:
+→ Best setups: Target lands at obvious S/R level
+→ Good setups: Target near round numbers or prior swing points
+→ Skip: Target is in "no man's land" with no S/R
+
+✓ ENTRY STRATEGIES:
+- Conservative: Enter when Range 3 breaks above/below Range 2 high/low
+- Aggressive: Enter on first momentum bar in Range 3 direction
+- Scale in: Half position on signal, half on breakout
+
+✓ RISK MANAGEMENT:
+- Stop: Below Range 2 low (bullish) or above Range 2 high (bearish)
+- Target: Projected level OR when price reaches S/R
+- Trail stops as pattern develops
+
+✓ WHEN TO SKIP:
+- Pattern is too choppy/messy
+- No clear S/R at target
+- Volume is declining
+- Target too close (< 2:1 risk/reward)
+
+========================================
+TIPS FOR BEST RESULTS
+========================================
+
+RADARSCREEN:
+- Run scans at market close for next day setups
+- Higher "strength" values = cleaner patterns
+- Cross-reference with your other scans
+
+CHART INDICATORS:
+- Use on multiple timeframes (daily, 60-min, 15-min)
+- Same pattern on multiple TFs = stronger signal
+- Adjust sensitivity based on volatility
+
+GENERAL:
+- Not every detected pattern will work - be selective
+- The best patterns have targets at OBVIOUS levels
+- Trust your eyes - if it looks messy, skip it
+- Back-test on historical data to build confidence
+
+========================================
+CUSTOMIZATION TIPS
+========================================
+
+If getting TOO MANY signals:
+- Increase MinMovePercent (try 5%)
+- Tighten pullback range (try 40-60%)
+- Require volume confirmation
+
+If getting TOO FEW signals:
+- Decrease MinMovePercent (try 2%)
+- Widen pullback range (try 20-80%)
+- Increase MaxMoveBars lookback
+
+For different markets:
+- Stocks: Use default settings
+- Futures: Increase MinMoveBars (faster movement)
+- Crypto: Widen pullback range (more volatile)
+
+========================================
+QUESTIONS OR ISSUES?
+========================================
+
+Common Issues:
+
+Q: "Not finding any patterns"
+A: Try reducing MinMovePercent or increasing MaxMoveBars
+
+Q: "Too many false signals"
+A: Be more strict with pullback range (40-60%) and require volume
+
+Q: "Targets seem wrong"
+A: Remember target = Range 1 size + Range 2 end price
+   If looks off, use Manual tool to verify
+
+Q: "Pattern detected but looks ugly"
+A: Trust your eyes! Not every mathematical pattern is tradeable
+
+========================================
+
+ALL THREE TOOLS WORK TOGETHER:
+1. RadarScreen finds opportunities
+2. Auto Chart confirms the pattern  
+3. Manual Tool validates your interpretation
+
+Good luck with your measured move trading!
